@@ -1,0 +1,594 @@
+In [1]:
+from pyDatalog import pyDatalog
+
+Variables and expressions
+
+The next step is to declare the variables we'll use. They must start with an upper-case
+letter:
+
+In [2]:
+pyDatalog.create_terms('X,Y')
+
+Variables appear in logic queries, which return a printable result
+
+In [3]:
+# give me all the X so that X is 1
+print(X==1)
+X
+-
+1
+
+Queries can contain several variables and several criteria ('&' is read 'and'):
+
+In [4]:
+# give me all the X and Y so that X is True and Y is False
+print((X==True) & (Y==False))
+X    | Y
+-----|------
+True | False
+
+Note the parenthesis around each equality: they are required to avoid confusion with (X==
+(True & Y)==False).
+
+Some queries return an empty result :
+
+In [5]:
+# give me all the X that are both True and False
+print((X==True) & (X==False))
+[]
+
+Besides numbers and booleans, variables can represent strings. Furthermore, queries can
+contain python expressions:
+
+In [6]:   
+# give me all the X and Y so that X is a name and Y is 'Hello ' followed by the first letter of X
+print((X==raw_input('Please enter your name : ')) & (Y=='Hello ' + X[0]))
+Please enter your name : World
+X     | Y
+------|--------
+World | Hello W
+
+In the second equality, X is said to be bound by the first equality, i.e. the first equality gives
+it a value, making it possible to evaluate the expression in the second equality.
+
+pyDatalog has no symbolic resolver (yet) ! If a variable in an expression is not bound, the
+query returns an empty solution :
+
+In [7]:
+# give me all the X and Y so that Y is 1 and Y is X+1
+print((X==1) & (Y==X+1))
+[]
+
+Variables can also represent (nested) tuples, which can participate in an expression and be
+sliced (0-based).
+
+In [8]:
+print((X==(1,2)+(3,)) & (Y==X[2]))
+X         | Y
+----------|--
+(1, 2, 3) | 3
+
+To use your own functions in logic expressions, define them in Python, then ask pyDatalog to create logical terms for them:
+
+In [9]:
+def twice(a):
+    return a+a
+
+pyDatalog.create_terms('twice')
+print((X==1) & (Y==twice(X)))
+X | Y
+--|--
+1 | 2
+
+Note that X must be bound before calling the function.
+
+Similarly, pyDatalog variables can be passed to functions in the Python standard library:
+
+In [10]:
+# give me all the X and Y so that X is 2 and Y is the square root of X
+import math
+pyDatalog.create_terms('math')
+print(X==2) & (Y==math.sqrt(X))
+X | Y
+--|--------------
+2 | 1.41421356237
+
+This way, pyDatalog has access to an extensive toolbox !
+
+Loops
+
+Let's first declare the Variables we'll need:
+
+In [11]:
+from pyDatalog import pyDatalog
+pyDatalog.create_terms('X,Y,Z')
+
+A loop can be created by using the .in() method (we'll see that there are other ways to
+create loops later):
+
+In [12]:
+# give me all the X so that X is in the range 0..4
+print(X.in_((0,1,2,3,4)))
+
+print
+
+# here is the procedural equivalent
+for x in range(5):
+    print x
+X
+-
+0
+1
+3
+2
+4
+
+0
+1
+2
+3
+4
+
+The result of a query is a set of its possible solutions, in random order. Each solution has 1
+value for each variable in the query. The .data attribute gives access to the result.
+
+In [13]:
+print(X.in_(range(5)).data)
+print(X.in_(range(5)) == set([(0,), (1,), (2,), (3,), (4,)]))
+[(0,), (1,), (2,), (3,), (4,)]
+True
+
+Similarly, after a query, a variable contains a tuple of all its possible values. They can be accessed with these methods :
+
+In [14]:
+print("Data : ",X.data)
+print("First value : ",  X.v())
+# below, '>=' is a variable extraction operator
+print("Extraction of first value of X: ", X.in_(range(5)) >= X)
+('Data : ', [1, 0, 4, 2, 3])
+('First value : ', 1)
+('Extraction of first value of X: ', 2)
+
+The '&' operator can be used to filter the result.
+
+In [15]:
+# give me all X in range 0..4 that are below 2
+print(X.in_(range(5)) & (X<2))
+X
+-
+1
+0
+
+Loops can easily be nested. Indentation helps reading them :
+
+In [16]:
+# give me all X, Y and Z so that X and Y are in 0..4, Z is their sum, and Z is below 3
+print(X.in_(range(5)) &
+          Y.in_(range(5)) &
+              (Z==X+Y) &
+              (Z<3))
+X | Y | Z
+--|---|--
+0 | 1 | 1
+1 | 1 | 2
+1 | 0 | 1
+0 | 2 | 2
+0 | 0 | 0
+2 | 0 | 2
+
+Logic Functions and dictionaries
+
+As an example, we'll calculate the net salary of employee foo and bar.
+
+In [17]:
+from pyDatalog import pyDatalog
+pyDatalog.create_terms('X,Y,Z, salary, tax_rate, tax_rate_for_salary_above, net_salary')
+
+Notice that logic function names, such as salary, starts with a lower case.
+
+A function defines one value for a given argument. It is similar to a python dictionary.
+
+In [18]:
+salary['foo'] = 60
+salary['bar'] = 110
+
+# Python equivalent
+_salary = dict()
+_salary['foo'] = 60
+_salary['bar'] = 110
+
+A function can be queried.
+
+In [19]:
+# give me all the X and Y so that the salary of X is Y
+print(salary[X]==Y)
+print
+# python equivalent
+print(_salary.items())
+X   | Y
+----|----
+bar | 110
+foo | 60
+
+[('foo', 60), ('bar', 110)]
+
+A function has only one value for a given argument.
+
+In [20]:
+# foo now has a salary of 70
+salary['foo'] = 70
+print(salary['foo']==Y)
+print
+
+# Python equivalent
+_salary['foo'] = 70
+print('foo --> ' + str(_salary['foo']))
+Y
+--
+70
+
+foo --> 70
+
+A function can also be queried by value. The following statement is shorter than its Python
+equivalent :
+
+In [21]:
+# give me all the X that have a salary of 110
+print(salary[X]==110)
+print
+
+# procedural equivalent in python
+for i, j in _salary.items():
+    if j==110:
+        print( i, '-->', j)
+X
+---
+bar
+
+bar --> 110
+
+Notice that there is a implicit loop in the query.
+
+A query can test the negation of a criteria.
+
+In [22]:
+print((salary[X]==Y) & ~(Y==110))
+X   | Y
+----|---
+foo | 70
+
+Let's now define a global tax rate. We'll use None for the function argument:
+
+In [23]:
+# the standard tax rate is 33%
++(tax_rate[None]==0.33)
+
+A function can be called in a formula :
+
+In [24]:
+# give me the net salary for all X
+print((Z==salary[X]*(1-tax_rate[None])))
+X   | Z
+----|-----
+foo | 46.9
+bar | 73.7
+
+In this case, X is bound by salary[X], so the expression can be evaluated.
+
+A function can also be defined by a clause. Here is a simple example:
+
+In [25]:
+# the net salary of X is Y if Y is the salary of X, reduced by the tax rate
+net_salary[X] = salary[X]*(1-tax_rate[None])
+
+In [26]:
+# give me all the X and Y so that Y is the net salary of X
+print(net_salary[X]==Y)
+print
+
+# procedural equivalent in Python
+for i,j in _salary.items():
+    k = j*(1-0.33)
+    print i, k
+X   | Y
+----|-----
+bar | 73.7
+foo | 46.9
+
+foo 46.9
+bar 73.7
+
+Again, such a function can be queried by value. As an excercice, you are invited to write the procedural equivalent of these queries.
+
+In [27]:
+# give me the net salary of foo
+print(net_salary['foo']==Y)
+print
+print(net_salary[Y]<50)
+Y
+----
+46.9
+
+Y
+---
+foo
+
+Let's now define a progressive tax system: the tax rate is 33 % by default, but 50% for salaries above 100.
+
+In [28]:
+# the tax rate for salaries above 0 is 33%, and above 100 is 50 %
+(tax_rate_for_salary_above[X] == 0.33) <= (0 <= X)
+(tax_rate_for_salary_above[X] == 0.50) <= (100 <= X)
+print(tax_rate_for_salary_above[70]==Y)
+print
+print(tax_rate_for_salary_above[150]==Y)
+Y
+----
+0.33
+
+Y
+---
+0.5
+
+The '<=' is the important token in the statements above : it is read 'if'.
+
+The most general definition of the function is given first. When searching for possible answers, pyDatalog begins with the last rule defined, i.e. the more specific, and stops as soon as a valid answer is found for the function. So, even though the 2 rules seem to apply for a salary of 150, the second one is actually used to obtain 50 %
+
+Let's now redefine net salary. Before we do, we need to retract our initial definition:
+
+In [29]:
+# retract our previous definition of net_salary
+del net_salary[X]
+
+Here is the new definition;
+
+In [30]:
+net_salary[X] = salary[X]*(1-tax_rate_for_salary_above[salary[X]])
+# give me all X and Y so that Y is the net salary of X
+print(net_salary[X]==Y)
+X   | Y
+----|-----
+foo | 46.9
+bar | 55.0
+
+Please note that we used f[X]=<expr> above, as a shorter notation for (f[X]==Y) <= (Y==expr)
+
+This short notation, together with the fact that functions can be defined in any order, makes writing a pyDatalog program as easy as creating a spreadsheet.
+
+To illustrate the point, this definition of Factorial cannot be any clearer !
+
+In [31]:
+pyDatalog.create_terms('factorial, N')
+factorial[N] = N*factorial[N-1]
+factorial[1] = 1
+print(factorial[3]==N)
+
+N
+-
+6
+
+Aggregate functions
+
+Aggregate functions are a special type of functions. Let's first create the data we need to illustrate them.
+
+In [32]:
+from pyDatalog import pyDatalog
+pyDatalog.create_terms('X,Y,manager, count_of_direct_reports')
+In [33]:
+# the manager of Mary is John
++(manager['Mary'] == 'John')
++(manager['Sam']  == 'Mary')
++(manager['Tom']  == 'Mary')
+
+A basic aggregation is to count the number of results, using len_.
+
+In [34]:
+(count_of_direct_reports[X]==len_(Y)) <= (manager[Y]==X)
+print(count_of_direct_reports['Mary']==Y)
+Y
+-
+2
+
+pyDatalog searches all possible solutions for manager['Mary']==Y, then counts the number of Y.
+
+The aggregate functions are:
+
+* len_ (P[X]==len_(Y)) <= body : P[X] is the count of values of Y (associated to X by the
+ body of the clause)
+* sum_ (P[X]==sum_(Y, for_each=Z)) <= body : P[X] is the sum of Y for each Z. (Z is used
+ to distinguish possibly identical Y values)
+* min_, max_ (P[X]==min_(Y, order_by=Z)) <= body : P[X] is the minimum (or maximum)
+ of Y sorted by Z.
+* tuple_ (P[X]==tuple_(Y, order_by=Z)) <= body : P[X] is a tuple containing all values of Y
+ sorted by Z.
+* concat_ (P[X]==concat_(Y, order_by=Z, sep=',')) <= body : same as 'sum' but for string.
+ The strings are sorted by Z, and separated by ','.
+* rank_ (P[X]==rank_(group_by=Y, order_by=Z)) <= body : P[X] is the sequence number
+ of X in the list of Y values when the list is sorted by Z.
+* running_sum_ (P[X]==running_sum_(N, group_by=Y, order_by=Z)) <= body : P[X] is the
+ sum of the values of N, for each Y that are before or equal to X when Y's are sorted by Z.
+* mean_ and linear_regression : see our reference
+
+Literals and sets
+
+Just as pyDatalog functions behave like Python dictionaries, pyDatalog literals behave like Python sets.
+
+In [35]:
+from pyDatalog import pyDatalog
+pyDatalog.create_terms('X,Y,Z, works_in, department_size, manager, indirect_manager, count_of_indirect_reports')
+
+Here is how you add facts to the set.
+
+In [36]:
+# Mary works in Production
++ works_in('Mary', 'Production')
++ works_in('Sam',  'Marketing')
+
++ works_in('John', 'Production')
++ works_in('John', 'Marketing')
+
+_works_in = set()
+_works_in.add(('Mary', 'Production'))
+_works_in.add(('Sam',  'Marketing'))
+_works_in.add(('John', 'Production'))
+_works_in.add(('John', 'Marketing'))
+
+Again, literals can be queried by value, in a way that is shorter than their Python equivalent.
+
+In [37]:
+# give me all the X that work in Marketing
+print(works_in(X,  'Marketing'))
+print
+
+# procedural equivalent in Python
+for i in _works_in:
+    if i[1]=='Marketing':
+        print i[0]
+X
+----
+John
+Sam
+
+Sam
+John
+
+Notice again that there is an implicit loop in the query.
+
+Literals can also be defined by clauses.
+
+In [38]:
+# one of the indirect manager of X is Y, if the (direct) manager of X is Y
+indirect_manager(X,Y) <= (manager[X] == Y)
+# another indirect manager of X is Y, if there is a Z so that the manager of X is Z,
+#   and an indirect manager of Z is Y
+indirect_manager(X,Y) <= (manager[X] == Z) & indirect_manager(Z,Y)
+print(indirect_manager('Sam',X))
+X
+----
+Mary
+John
+
+Notice that the use of 2 separate clauses implements an implicit 'or'.
+ 
+When resolving queries, pyDatalog remembers intermediate results, by a process called memoization. This makes resolution faster, but it also helps deal with infinite loops !
+
+In [39]:
+# the manager of John is Mary (whose manager is John !)
+manager['John'] = 'Mary'
+
+print(indirect_manager('John',X))
+X
+----
+John
+Mary
+
+This makes pyDatalog a great tool to implement recursive algorithms on complex data structures, e.g. representing networks.
+
+It's also possible to remove facts:
+
+In [40]:
+# John does not work in Production anymore
+- works_in('John', 'Production')
+
+Aggregate functions can be defined on literals too :
+
+In [41]:
+(count_of_indirect_reports[X]==len_(Y)) <= indirect_manager(Y,X)
+print(count_of_indirect_reports['John']==Y)
+Y
+-
+4
+
+Tree, graphs and recursive algorithms
+
+Trees and graphs can be represented by the links between their nodes :
+
+In [42]:
+pyDatalog.create_terms('link, can_reach')
+
+# there is a link between node 1 and node 2
++link(1,2)
++link(2,3)
++link(2,4)
++link(2,5)
++link(5,6)
++link(6,7)
++link(7,2)
+
+This clause specifies that links are bidirectional:
+
+In [43]:
+# links are bi-directional
+link(X,Y) <= link(Y,X)
+Out[43]:
+<pyDatalog.pyEngine.Clause at 0x661ac18>
+
+The following 2 clauses explain how to determine if Y can be reached from X, using recursion.
+
+In [44]:
+# can Y be reached from X ?
+can_reach(X,Y) <= link(X,Y) # direct link
+# via Z
+can_reach(X,Y) <= link(X,Z) & can_reach(Z,Y) & (X!=Y)
+
+print (can_reach(1,Y))
+Y
+-
+4
+5
+6
+7
+3
+2
+
+Please note that pyDatalog is smart enough to resolve the query despite the facts that there are loops in the graph.
+
+More example of graph algorithms are available in this example.
+
+
+### 8-queen puzzle
+
+By combining what we have seen so far, one can program the solution of complex problems in a declarative way, and let the computer find the procedure to solve them.
+
+As an example, let's program an efficient solution to the 8-queen puzzle. A shorter solution for any N can be found here.
+
+In [45]:
+from pyDatalog import pyDatalog
+pyDatalog.create_terms('N,X0,X1,X2,X3,X4,X5,X6,X7')
+pyDatalog.create_terms('ok,queens,next_queen')
+
+# the queen in the first column can be in any row
+queens(X0)                      <= (X0._in(range(8)))
+
+# to find the queens in the first 2 columns, find the first one first, then find a second one
+queens(X0,X1)                   <= queens(X0)                   & next_queen(X0,X1)
+
+# repeat for the following queens
+queens(X0,X1,X2)                <= queens(X0,X1)                & next_queen(X0,X1,X2)
+queens(X0,X1,X2,X3)             <= queens(X0,X1,X2)             & next_queen(X0,X1,X2,X3)
+queens(X0,X1,X2,X3,X4)          <= queens(X0,X1,X2,X3)          & next_queen(X0,X1,X2,X3,X4)
+queens(X0,X1,X2,X3,X4,X5)       <= queens(X0,X1,X2,X3,X4)       & next_queen(X0,X1,X2,X3,X4,X5)
+queens(X0,X1,X2,X3,X4,X5,X6)    <= queens(X0,X1,X2,X3,X4,X5)    & next_queen(X0,X1,X2,X3,X4,X5,X6)
+queens(X0,X1,X2,X3,X4,X5,X6,X7) <= queens(X0,X1,X2,X3,X4,X5,X6) & next_queen(X0,X1,X2,X3,X4,X5,X6,X7)
+
+# the second queen can be in any row, provided it is compatible with the first one
+next_queen(X0,X1)                   <= queens(X1)                       & ok(X0,1,X1)
+
+# to find the third queen, first find a queen compatible with the second one, then with the first
+# re-use the previous clause for maximum speed, thanks to memoization
+next_queen(X0,X1,X2)                <= next_queen(X1,X2)                & ok(X0,2,X2)
+
+# repeat for all queens
+next_queen(X0,X1,X2,X3)             <= next_queen(X1,X2,X3)             & ok(X0,3,X3)
+next_queen(X0,X1,X2,X3,X4)          <= next_queen(X1,X2,X3,X4)          & ok(X0,4,X4)
+next_queen(X0,X1,X2,X3,X4,X5)       <= next_queen(X1,X2,X3,X4,X5)       & ok(X0,5,X5)
+next_queen(X0,X1,X2,X3,X4,X5,X6)    <= next_queen(X1,X2,X3,X4,X5,X6)    & ok(X0,6,X6)
+next_queen(X0,X1,X2,X3,X4,X5,X6,X7) <= next_queen(X1,X2,X3,X4,X5,X6,X7) & ok(X0,7,X7)
+
+# it's ok to have one queen in row X1 and another in row X2 if they are separated by N columns
+ok(X1, N, X2) <= (X1 != X2) & (X1 != X2+N) & (X1 != X2-N)
+print
+In [46]:
+# give me one solution to the 8-queen puzzle
+print(queens(X0,X1,X2,X3,X4,X5,X6,X7).data[0])
+(4, 2, 0, 6, 1, 7, 5, 3)
