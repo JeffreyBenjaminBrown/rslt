@@ -9,4 +9,6 @@ A template T has arity[T] > 0, and joint[i,T] :: *leaf,
 
 Example: in the rel "Sometimes I like bugs"
   the template might be ["Sometimes","like",""],
-  member 1 "I", and member 2 "bugs".
+  and the members "I" and "bugs".
+  (Another decomposition is "##maybe I #like bugs":
+    a unary "maybe" rel containing the binary rel "I #like bugs".)

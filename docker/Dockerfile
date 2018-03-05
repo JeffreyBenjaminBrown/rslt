@@ -14,7 +14,7 @@ RUN apt install -y tcpdump net-tools locales \
   python3.6 python3-venv python3-pip
 
 # pydatalog
-RUN pip3 install pyDatalog sqlalchemy
+RUN pip3 install pyDatalog sqlalchemy mypy coconut
 
 EXPOSE 8182
 

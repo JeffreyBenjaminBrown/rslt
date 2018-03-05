@@ -1,5 +1,5 @@
 sudo docker build -f Dockerfile -t	        \
-  jeffreybbrown/pydatalog:untested .		\
+  jeffreybbrown/pydatalog:coconut .		\
   | tee logs/"build-log.`date`.txt"
 
 sudo docker run --name pydatalog -it -v /home/jeff/code/pydatalog/mnt:/mnt -p 8182:8182 -d -h 127.0.0.1 jeffreybbrown/pydatalog:untested
