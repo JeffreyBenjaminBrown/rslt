@@ -1,7 +1,7 @@
-sudo docker build -f Dockerfile -t	        \
-  jeffreybbrown/pydatalog:coconut .		\
+sudo docker build -f Dockerfile -t	\
+  jeffreybbrown/rslt:coconut .		\
   | tee logs/"build-log.`date`.txt"
 
-sudo docker run --name pydatalog -it -v /home/jeff/code/pydatalog:/mnt -p 8182:8182 -d -h 127.0.0.1 jeffreybbrown/pydatalog:coconut
+sudo docker run --name rslt -it -v /home/jeff/rslt:/mnt -p 8192:8182 -d -h 127.0.0.1 jeffreybbrown/rslt:coconut
 
-sudo docker exec -it pydatalog bash
+sudo docker exec -it rslt bash
