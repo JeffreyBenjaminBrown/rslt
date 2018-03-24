@@ -2,6 +2,6 @@ sudo docker build -f Dockerfile -t	\
   jeffreybbrown/rslt:coco-devel .	\
   | tee logs/"build-log.`date`.txt"
 
-sudo docker run --name rslt -it -v /home/jeff/rslt:/mnt -p 8192:8182 -d -h 127.0.0.1 jeffreybbrown/rslt:coconut
+sudo docker run --name rslt -it -v /home/jeff/rslt:/mnt -p 8192:8182 -d -h 127.0.0.1 jeffreybbrown/rslt:coco-devel
 
 sudo docker exec -it rslt bash
